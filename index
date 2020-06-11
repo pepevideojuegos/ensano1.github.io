@@ -1,0 +1,230 @@
+#! / bin / bash
+
+# #
+# Uso:
+#    bash install_prestashop.sh ubicación del nombre de directorio [-v | - versión de versión] [--github | --web] (--manual | - (Parámetros de PrestaShop))
+# eg
+#    bash install_prestashop.sh prueba. --web - --dominio = prestashop.ps -db_server = localhost --db_name = prestashop2 --db_user = root --db_password = "root"
+# o
+#    bash install_prestashop.sh prueba. -v 1.6.1.9 --manual
+# #
+# --- Por Ilshidur (https://github.com/Ilshidur)
+# ¡No    dude en enviar solicitudes de extracción!
+# #
+# TODO: use https://api.github.com/repos/PrestaShop/PrestaShop/releases
+# #
+
+# Inspirado en https://gist.github.com/julienbourdeau/205df55bcf8aa290bd9e
+
+# Constantes para colores de consola
+ROJO = ' \ e [0; 31m '
+VERDE = ' \ e [0; 32m '
+NARANJA = ' \ e [0; 33m '
+NC = ' \ e [0m '  # Sin color
+
+# Constantes
+GIT_REPO = " git@github.com: PrestaShop / PrestaShop.git "
+
+# Variables de usuario con los valores predeterminados
+installfrom = " web "
+ubicación = " ~ / "
+dirname = " PrestaShop "
+version = " "
+installPrms = " _MANUAL_ "  # Parámetros de instalación de PrestaShop CLI, _MANUAL_ significa que no hay instalación automática de Prestashop a través de CLI
+
+ uso de la función
+{
+  echo -e " $ {GREEN} Uso: install_prestashop [ubicación] [- versión de versión] [--github | --web] $ {NC} "
+  echo -e " eg "
+  echo -e "   bash ./install_prestashop.sh test " .
+  echo -e "   bash ./install_prestashop.sh test. --github "
+  echo -e "   bash ./install_prestashop.sh test. --web - --domain = localhost / prestashop --name = PrestaShopTest --db_server = localhost --db_name = prestashop --db_user = root --db_password = root - -email=email@domail.tld --password = root --db_clear = 1 --db_create = 1 "
+  echo -e "   bash ./install_prestashop.sh --help "
+}
+
+función  install_from_git
+{
+  cd  $ location
+  if [ -d  $ location $ dirname ] ;  entonces
+    echo -e " $ {RED} $ location $ dirname ya existe! $ {NC} "
+    salida 1
+  fi
+
+  echo -e " $ {GREEN} Descargando a $ location $ dirname ... $ {NC} "
+  git clone -q --recursive $ GIT_REPO  $ dirname  || { echo -e " $ {RED} ¡El clon de Git falló! $ {NC} "  ;  salida 1 ; }
+
+  cd  $ dirname
+}
+
+función  install_from_web
+{
+  tempZip = " prestashop_ $ {versión} .zip "
+
+  cd  $ location
+  if [ -d  $ location $ dirname ] ;  entonces
+    echo -e " $ {RED} $ location $ dirname ya existe! $ {NC} "
+    salida 1
+  fi
+  si [ -d  $ tempZip ] ;  entonces
+    echo -e " $ {ORANGE} Eliminando $ tempZip  $ {NC} existente "
+    rm -rf $ tempZip  || { echo -e " $ {RED} rm $ {tempZip} falló! $ {NC} "  ;  salida 1 ; }
+  fi
+
+  mkdir $ dirname
+  cd  $ dirname
+  echo -e " $ {GREEN} Descargando desde https://download.prestashop.com/download/releases a $ location $ dirname ... $ {NC} "
+  wget -q " https://download.prestashop.com/download/releases/ $ {tempZip} "  || { echo -e " $ {RED} wget falló! $ {NC} "  ;  salida 1 ; }
+  echo -e " $ {verde} La extracción de $ {} tempZip ... $ {NC} "
+  descomprimir -q $ tempZip
+  rm -rf $ tempZip
+
+  si [ -f prestashop.zip] ;  entonces
+    descomprimir -o -q prestashop.zip
+    rm -rf prestashop.zip
+  fi
+
+  # Si PrestaShop está en una carpeta, la mueve fuera de la carpeta
+  if [ $ ( find ./ * -maxdepth 0 -type d | wc -l )  == 1] ;  entonces  # Dir cuenta
+    mv $ ( find ./ * -maxdepth 0 -type d ) / *  .
+  fi
+}
+
+instalar ()
+{
+  # El nombre del directorio de instalación difiere de la instalación del sitio web de PrestaShop en el repositorio de Git
+  installDir = ' instalar '
+  caso  $ 1  en
+    github)
+       installDir = ' install-dev '
+       ;;
+    web)
+       installDir = ' instalar '
+       ;;
+  esac
+
+  echo -e " $ {GREEN} Instalando PrestaShop. Esto puede llevar un tiempo ... $ {NC} "
+  # La instalación de PrestaShop 1.6 no se cerrará con el código "1" si la instalación falla
+  php " ./ $ {installDir} /index_cli.php "  $ installPrms  || { echo -e " $ {RED} ¡Falló la instalación de Prestashop! $ {NC} "  ;  salida 1 ; }
+
+  rm -rf $ installDir
+}
+
+función  setup_permissions
+{
+  echo -e " $ {GREEN} Configurando permisos ... $ {NC} "
+  chmod a + w -R config /
+  chmod a + w -R caché /
+  chmod a + w -R log /
+  chmod a + w -R img /
+  chmod a + w -R correos /
+  módulos chmod a + w -R /
+  chmod a + w -R themes / default-bootstrap / lang /
+  chmod a + w -R themes / default-bootstrap / pdf / lang /
+  chmod a + w -R themes / default-bootstrap / cache /
+  chmod a + w -R traducciones /
+  chmod a + w -R subir /
+  chmod a + w -R descarga /
+}
+
+si [ " $ 1 "  ==  " -h " ] || [ " $ 1 "  ==  " --ayuda " ] ;  entonces
+  uso
+  salida 1
+fi
+
+if [ " $ 1 "  ! =  " " ] ;  entonces
+  dirname = $ 1
+más
+  echo -e " $ {RED} Falta el 1er parámetro: dirname $ {NC} "
+  salida 1
+fi
+
+if [ " $ 2 "  ! =  " " ] ;  entonces
+  ubicación = $ 2
+más
+  echo -e " $ {RED} Falta el segundo parámetro: ubicación $ {NC} "
+  salida 1
+fi
+
+# Ubicación del arreglo: "." a "./", "~" a "~ /" ...
+si [ " $ 2 "  =  " ~ " ] || [ " $ 2 "  =  " . " ] || [ " $ 2 "  =  " .. " ] ;  entonces
+  ubicación = $ ubicación " / "
+fi
+
+# Comience a leer los parámetros del 3er.
+cambio
+cambio
+while [ " $ 1 "  ! =  " " ] ;  hacer
+  caso  " $ 1 "  en
+    " -v " | " --version " )
+      cambio
+      versión = $ 1
+      ;;
+    " --github " )
+      installfrom = " github "
+      ;;
+    " --web " )
+      installfrom = " web "
+      ;;
+    " --manual " )
+      installPrms = " _MANUAL_ "
+      ;;
+    " - " )
+        # Obtener el resto de los params
+        while [ " $ 1 "  ! =  " " ] ;  hacer
+          installPrms = $ installPrms $ 1 "  "
+          cambio
+        hecho
+        ;;
+    " -h " | " --ayuda " )
+      uso
+      salida 1
+      ;;
+    * )
+      uso
+      salida 1
+  esac
+  cambio
+hecho
+
+si [ !  -w  . ] ;  entonces
+  echo -e " $ {RED} Permisos insuficientes. Ejecútelo como root o agregue permisos + w en este directorio. $ {NC} "
+  salida 1
+fi
+
+if [ " $ version "  ==  " " ] ;  entonces
+  echo -e " $ {ORANGE} Obteniendo la última etiqueta de versión de PrestaShop ... $ {NC} "
+  version = $ ( curl -s https://api.github.com/repos/PrestaShop/PrestaShop/releases | grep -Po ' (? <= "tag_name": ") [^"] * '  | head -n 1 )
+fi
+
+echo -e " $ {GREEN} [Prestashop v $ versión ] $ {NC} "
+
+case  $ installfrom  in
+  github)
+     install_from_git
+     ;;
+  web)
+     install_from_web
+     ;;
+esac
+
+setup_permissions
+
+if [ " $ installPrms "  ==  " _MANUAL_ " ] ;  entonces
+  echo -e " $ {ORANGE} PrestaShop no se instalará (--manual). $ {NC} "
+más
+  instalar $ installfrom
+fi
+
+if [ " $ installfrom "  ==  " github " ] ;  entonces
+  # La instalación desde GitHub necesita instalar dependencias con Composer
+  si [ !  comando -v compositor > / dev / null 2> & 1 ] ;  entonces
+    echo -e " $ {ORANGE} Comando 'compositor' no encontrado. ¡Las dependencias no se instalarán! $ {NC} "
+  más
+    echo -e " $ {GREEN} Instalando dependencias ... $ {NC} "
+    instalación del compositor ||  echo -e " $ {RED} ¡Falló la instalación del compositor! $ {NC} "  ;
+  fi
+fi
+
+echo -e " $ {GREEN} ¡Listo! Ahora ponte a trabajar :) $ {NC} "
+
+salida 0
